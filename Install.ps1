@@ -7,37 +7,23 @@
 $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 
 if (-not $isAdmin) {
-    $url     = "https://raw.githubusercontent.com/Leeegod/acmelive/main/Install.ps1"
-    $tmpFile = "$env:TEMP\AcmeInstall-elevated.ps1"
-
-    # Download fresh copy from GitHub to temp
-    try {
-        Write-Host "Downloading installer..." -ForegroundColor Yellow
-        Invoke-WebRequest -Uri $url -OutFile $tmpFile -ErrorAction Stop
-        Write-Host "Downloaded successfully." -ForegroundColor Green
-    } catch {
-        Write-Host "ERROR: Failed to download script: $($_.Exception.Message)" -ForegroundColor Red
-        Read-Host "Press Enter to close"
-        exit 1
-    }
-
-    # Relaunch as admin with the temp file
-    try {
-        Write-Host ""
-        Write-Host "Launching installer with admin privileges..." -ForegroundColor Cyan
-        Write-Host "A new window will open. Please complete the installation there." -ForegroundColor Gray
-        Write-Host ""
-        
-        Start-Process powershell.exe -Verb RunAs -ArgumentList "-NoProfile", "-ExecutionPolicy", "Bypass", "-File `"$tmpFile`""
-        
-        Write-Host "Admin window launched. You can close this window." -ForegroundColor Green
-        Read-Host "Press Enter to close this window"
-    } catch {
-        Write-Host "ERROR: Failed to elevate privileges: $($_.Exception.Message)" -ForegroundColor Red
-        Read-Host "Press Enter to close"
-        exit 1
-    }
-    
+    Write-Host ""
+    Write-Host "========================================" -ForegroundColor Yellow
+    Write-Host "  Admin privileges required!" -ForegroundColor Yellow
+    Write-Host "========================================" -ForegroundColor Yellow
+    Write-Host ""
+    Write-Host "This script needs to be run as Administrator." -ForegroundColor Cyan
+    Write-Host "Please close this window and:" -ForegroundColor Cyan
+    Write-Host ""
+    Write-Host "  1. Right-click on PowerShell" -ForegroundColor White
+    Write-Host "  2. Select 'Run as administrator'" -ForegroundColor White
+    Write-Host "  3. Run this script again" -ForegroundColor White
+    Write-Host ""
+    Write-Host "OR simply re-run this command:" -ForegroundColor Cyan
+    Write-Host ""
+    Write-Host "  Start-Process powershell -Verb RunAs -ArgumentList ""-NoProfile -ExecutionPolicy Bypass -File '$PSCommandPath'"" -Wait" -ForegroundColor Gray
+    Write-Host ""
+    Read-Host "Press Enter to close"
     exit
 }
 
@@ -185,7 +171,6 @@ finally {
     Write-Step "Cleaning up temporary files..."
     Remove-Item $TempZip     -Force          -ErrorAction SilentlyContinue
     Remove-Item $TempExtract -Recurse -Force -ErrorAction SilentlyContinue
-    Remove-Item "$env:TEMP\AcmeInstall-elevated.ps1" -Force -ErrorAction SilentlyContinue
     Write-Ok "Cleanup done."
     Write-Host ""
 }
