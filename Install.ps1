@@ -21,7 +21,7 @@ $ServiceName = "AcmeClient"
 $InstallDir  = "$env:LOCALAPPDATA\Acme\$AppName"
 $TempZip     = "$env:TEMP\$AppName.zip"
 $TempExtract = "$env:TEMP\$AppName-extract"
-$DownloadUrl = "http://web.acmetech.com.np/acmeupdate/acmelive.zip"
+$DownloadUrl = "http://web.acmetech.com.np/acmeupdate/acmelive/acmelive.zip"
 
 # ============================================================
 #  HELPERS
