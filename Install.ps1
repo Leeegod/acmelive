@@ -11,10 +11,8 @@ if (-not $isAdmin) {
     $tmpFile = "$env:TEMP\AcmeInstall-elevated.ps1"
 
     if ($PSCommandPath) {
-        # Local file — just relaunch it
         $target = $PSCommandPath
     } else {
-        # irm | iex — save to temp first, then relaunch
         Invoke-RestMethod $url -OutFile $tmpFile
         $target = $tmpFile
     }
@@ -28,7 +26,7 @@ $ErrorActionPreference = "Stop"
 # ============================================================
 #  CONFIGURATION
 # ============================================================
-$AppName     = "AcmeClient"
+$AppName     = "acmelive"
 $ServiceName = "AcmeClient"
 $InstallDir  = "$env:LOCALAPPDATA\Acme\$AppName"
 $TempZip     = "$env:TEMP\$AppName.zip"
@@ -114,7 +112,7 @@ try {
 
 
     # ----------------------------------------------------------
-    # 5. LOCATE AcmeClient.exe
+    # 5. LOCATE acmelive.exe
     # ----------------------------------------------------------
     Write-Step "Locating main executable..."
 
@@ -124,33 +122,28 @@ try {
 
 
     # ----------------------------------------------------------
-    # 6. RUN AcmeClient.exe install
+    # 6. RUN acmelive.exe install
     # ----------------------------------------------------------
-    Write-Step "Running AcmeClient install command..."
+    Write-Step "Running acmelive.exe install command..."
 
     $proc = Start-Process -FilePath $ExePath -ArgumentList "install" -Wait -PassThru
-    if ($proc.ExitCode -ne 0) { throw "AcmeClient install exited with code $($proc.ExitCode)" }
-    Write-Ok "AcmeClient install completed."
+    if ($proc.ExitCode -ne 0) { throw "acmelive install exited with code $($proc.ExitCode)" }
+    Write-Ok "acmelive install completed."
 
 
     # ----------------------------------------------------------
-    # 7. LOCATE app.exe
+    # 7. ADD TO PATH
     # ----------------------------------------------------------
-    Write-Step "Locating app.exe..."
+    Write-Step "Adding to PATH..."
 
-    $AppExePath = Join-Path $InstallDir "app.exe"
-    if (-not (Test-Path $AppExePath)) { throw "app.exe not found: $AppExePath" }
-    Write-Ok "Found  $AppExePath"
-
-
-    # ----------------------------------------------------------
-    # 8. RUN app.exe install  (finalize installation)
-    # ----------------------------------------------------------
-    Write-Step "Running app.exe install to finalize..."
-
-    $appProc = Start-Process -FilePath $AppExePath -ArgumentList "install" -Wait -PassThru
-    if ($appProc.ExitCode -ne 0) { throw "app.exe install exited with code $($appProc.ExitCode)" }
-    Write-Ok "app.exe install completed."
+    $currentPath = [Environment]::GetEnvironmentVariable("Path", "User")
+    if ($currentPath -notlike "*$InstallDir*") {
+        [Environment]::SetEnvironmentVariable("Path", "$currentPath;$InstallDir", "User")
+        $env:Path += ";$InstallDir"
+        Write-Ok "Added to PATH  ->  $InstallDir"
+    } else {
+        Write-Ok "Already in PATH — skipping."
+    }
 
 
     # ----------------------------------------------------------
@@ -167,7 +160,6 @@ catch {
     Write-Host ""
     Write-Fail "Installation failed: $($_.Exception.Message)"
     Write-Host ""
-    Read-Host "  Press Enter to exit"
     exit 1
 }
 finally {
@@ -178,5 +170,3 @@ finally {
     Write-Ok "Cleanup done."
     Write-Host ""
 }
-
-Read-Host "  Press Enter to exit"
