@@ -5,23 +5,30 @@ $isAdmin = ([Security.Principal.WindowsPrincipal] `
     [Security.Principal.WindowsIdentity]::GetCurrent()
 ).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 
+$scriptUrl = "https://raw.githubusercontent.com/Leeegod/acmelive/main/Install.ps1"
+$localFile = "$env:TEMP\acme_install.ps1"
+
+# ALWAYS ensure local script exists
+if (-not (Test-Path $localFile)) {
+    Invoke-WebRequest $scriptUrl -OutFile $localFile
+}
+
 if (-not $isAdmin) {
+    Write-Host "Requesting administrator permission..."
 
-    $url = "https://raw.githubusercontent.com/Leeegod/acmelive/main/Install.ps1"
-    $tmp = "$env:TEMP\AcmeInstall.ps1"
+    Start-Process powershell -Verb RunAs -ArgumentList @(
+        "-NoProfile",
+        "-ExecutionPolicy Bypass",
+        "-File `"$localFile`""
+    )
 
-    if ($PSCommandPath) {
-        $target = $PSCommandPath
-    }
-    else {
-        Invoke-RestMethod $url -OutFile $tmp
-        $target = $tmp
-    }
-
-    Start-Process powershell -Verb RunAs -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$target`""
     exit
 }
 
+# ensure script continues from local file
+if ($PSCommandPath -ne $localFile) {
+    exit
+}
 $ErrorActionPreference = "Stop"
 
 # ============================================================
