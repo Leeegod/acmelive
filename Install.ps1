@@ -160,7 +160,6 @@ catch {
     Write-Host ""
     Write-Fail "Installation failed: $($_.Exception.Message)"
     Write-Host ""
-    exit 1
 }
 finally {
     Write-Step "Cleaning up temporary files..."
@@ -170,3 +169,5 @@ finally {
     Write-Ok "Cleanup done."
     Write-Host ""
 }
+
+Read-Host "  Press Enter to close"
