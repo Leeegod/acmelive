@@ -16,22 +16,27 @@ if (-not $isAdmin) {
         Invoke-WebRequest -Uri $url -OutFile $tmpFile -ErrorAction Stop
     } catch {
         Write-Host "ERROR: Failed to download script: $($_.Exception.Message)" -ForegroundColor Red
+        Read-Host "Press Enter to close"
         exit 1
     }
 
-    # Relaunch as admin with the temp file
+    # Relaunch as admin with the temp file (don't wait, keep this window open)
     $params = @{
         FilePath     = "powershell.exe"
         Verb         = "RunAs"
         ArgumentList = "-NoProfile", "-ExecutionPolicy", "Bypass", "-File `"$tmpFile`""
-        Wait         = $true
         WindowStyle  = "Normal"
     }
 
     try {
         Start-Process @params
+        Write-Host ""
+        Write-Host "Administrator window opened. Please wait for installation to complete..." -ForegroundColor Green
+        Write-Host "This window will close automatically." -ForegroundColor Gray
+        Start-Sleep -Seconds 3
     } catch {
         Write-Host "ERROR: Failed to elevate privileges: $($_.Exception.Message)" -ForegroundColor Red
+        Read-Host "Press Enter to close"
         exit 1
     }
     
