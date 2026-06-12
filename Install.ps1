@@ -23,7 +23,7 @@ $ErrorActionPreference = "Stop"
 # ============================================================
 #  CONFIGURATION
 # ============================================================
-$AppName     = "AcmeClient"
+$AppName     = "acmelive"
 $ServiceName = "AcmeClient"
 $InstallDir  = "$env:LOCALAPPDATA\Acme\$AppName"
 $TempZip     = "$env:TEMP\$AppName.zip"
