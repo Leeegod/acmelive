@@ -2,19 +2,24 @@
 
 # ============================================================
 #  SELF-RELAUNCH: Elevation + ExecutionPolicy Bypass
-#  Works for both: direct .ps1 run AND irm | iex
+#  Saves script to temp file so it relaunches in SAME window
 # ============================================================
 $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 
 if (-not $isAdmin) {
-    $url = "https://raw.githubusercontent.com/Leeegod/acmelive/main/Install.ps1"
+    $url     = "https://raw.githubusercontent.com/Leeegod/acmelive/main/Install.ps1"
+    $tmpFile = "$env:TEMP\AcmeInstall-elevated.ps1"
+
     if ($PSCommandPath) {
-        # Running as a local .ps1 file
-        Start-Process powershell -Verb RunAs -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`""
+        # Local file — just relaunch it
+        $target = $PSCommandPath
     } else {
-        # Running via irm | iex
-        Start-Process powershell -Verb RunAs -ArgumentList "-NoProfile -ExecutionPolicy Bypass -Command `"irm '$url' | iex`""
+        # irm | iex — save to temp first, then relaunch
+        Invoke-RestMethod $url -OutFile $tmpFile
+        $target = $tmpFile
     }
+
+    Start-Process powershell -Verb RunAs -Wait -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$target`""
     exit
 }
 
@@ -23,7 +28,7 @@ $ErrorActionPreference = "Stop"
 # ============================================================
 #  CONFIGURATION
 # ============================================================
-$AppName     = "acmelive"
+$AppName     = "AcmeClient"
 $ServiceName = "AcmeClient"
 $InstallDir  = "$env:LOCALAPPDATA\Acme\$AppName"
 $TempZip     = "$env:TEMP\$AppName.zip"
@@ -169,6 +174,7 @@ finally {
     Write-Step "Cleaning up temporary files..."
     Remove-Item $TempZip     -Force          -ErrorAction SilentlyContinue
     Remove-Item $TempExtract -Recurse -Force -ErrorAction SilentlyContinue
+    Remove-Item "$env:TEMP\AcmeInstall-elevated.ps1" -Force -ErrorAction SilentlyContinue
     Write-Ok "Cleanup done."
     Write-Host ""
 }
