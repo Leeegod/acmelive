@@ -2,7 +2,7 @@
 
 # ============================================================
 #  SELF-RELAUNCH: Elevation + ExecutionPolicy Bypass
-#  Saves script to temp file so it relaunches in SAME window
+#  Works whether PowerShell opened as admin or not
 # ============================================================
 $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 
@@ -10,14 +10,31 @@ if (-not $isAdmin) {
     $url     = "https://raw.githubusercontent.com/Leeegod/acmelive/main/Install.ps1"
     $tmpFile = "$env:TEMP\AcmeInstall-elevated.ps1"
 
-    if ($PSCommandPath) {
-        $target = $PSCommandPath
-    } else {
-        Invoke-RestMethod $url -OutFile $tmpFile
-        $target = $tmpFile
+    # Download fresh copy from GitHub to temp
+    try {
+        Write-Host "Requesting administrator permissions..." -ForegroundColor Yellow
+        Invoke-WebRequest -Uri $url -OutFile $tmpFile -ErrorAction Stop
+    } catch {
+        Write-Host "ERROR: Failed to download script: $($_.Exception.Message)" -ForegroundColor Red
+        exit 1
     }
 
-    Start-Process powershell -Verb RunAs -Wait -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$target`""
+    # Relaunch as admin with the temp file
+    $params = @{
+        FilePath     = "powershell.exe"
+        Verb         = "RunAs"
+        ArgumentList = "-NoProfile", "-ExecutionPolicy", "Bypass", "-File `"$tmpFile`""
+        Wait         = $true
+        WindowStyle  = "Normal"
+    }
+
+    try {
+        Start-Process @params
+    } catch {
+        Write-Host "ERROR: Failed to elevate privileges: $($_.Exception.Message)" -ForegroundColor Red
+        exit 1
+    }
+    
     exit
 }
 
