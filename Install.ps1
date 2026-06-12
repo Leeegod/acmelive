@@ -1,173 +1,102 @@
-#Requires -Version 5.1
-
 # ============================================================
-#  SELF-RELAUNCH: Elevation + ExecutionPolicy Bypass
-#  Saves script to temp file so it relaunches in SAME window
+# SELF-ELEVATION (SAFE + RELIABLE)
 # ============================================================
-$isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+$isAdmin = ([Security.Principal.WindowsPrincipal] `
+    [Security.Principal.WindowsIdentity]::GetCurrent()
+).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 
 if (-not $isAdmin) {
-    $url     = "https://raw.githubusercontent.com/Leeegod/acmelive/main/Install.ps1"
-    $tmpFile = "$env:TEMP\AcmeInstall-elevated.ps1"
+
+    $url = "https://raw.githubusercontent.com/Leeegod/acmelive/main/Install.ps1"
+    $tmp = "$env:TEMP\AcmeInstall.ps1"
 
     if ($PSCommandPath) {
         $target = $PSCommandPath
-    } else {
-        Invoke-RestMethod $url -OutFile $tmpFile
-        $target = $tmpFile
+    }
+    else {
+        Invoke-RestMethod $url -OutFile $tmp
+        $target = $tmp
     }
 
-    Start-Process powershell -Verb RunAs -Wait -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$target`""
+    Start-Process powershell -Verb RunAs -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$target`""
     exit
 }
 
 $ErrorActionPreference = "Stop"
 
 # ============================================================
-#  CONFIGURATION
+# CONFIG
 # ============================================================
 $AppName     = "acmelive"
 $ServiceName = "AcmeClient"
+
 $InstallDir  = "$env:LOCALAPPDATA\Acme\$AppName"
 $TempZip     = "$env:TEMP\$AppName.zip"
 $TempExtract = "$env:TEMP\$AppName-extract"
+
 $DownloadUrl = "http://web.acmetech.com.np/acmeupdate/acmelive.zip"
 
 # ============================================================
-#  HELPERS
+# LOG
 # ============================================================
-function Write-Step { param([string]$msg) Write-Host "`n  --> $msg" -ForegroundColor Cyan }
-function Write-Ok   { param([string]$msg) Write-Host "      [OK] $msg" -ForegroundColor Green }
-function Write-Warn { param([string]$msg) Write-Host "      [!!] $msg" -ForegroundColor Yellow }
-function Write-Fail { param([string]$msg) Write-Host "      [XX] $msg" -ForegroundColor Red }
-
-function Write-Banner {
-    $border = "=" * 54
-    Write-Host ""
-    Write-Host "  $border"             -ForegroundColor DarkCyan
-    Write-Host "    Acme Installer  |  $(Get-Date -Format 'yyyy-MM-dd  HH:mm:ss')" -ForegroundColor White
-    Write-Host "  $border"             -ForegroundColor DarkCyan
-    Write-Host ""
-}
-
-# ============================================================
-#  MAIN
-# ============================================================
-Write-Banner
+function Log { param($m) Write-Host "[$(Get-Date -f 'HH:mm:ss')] $m" }
 
 try {
 
-    # ----------------------------------------------------------
-    # 1. DOWNLOAD PACKAGE
-    # ----------------------------------------------------------
-    Write-Step "Downloading package..."
-    Write-Host "      URL : $DownloadUrl" -ForegroundColor DarkGray
+    Log "Downloading package..."
+    Invoke-WebRequest $DownloadUrl -OutFile $TempZip
 
-    $wc = New-Object System.Net.WebClient
-    $wc.DownloadFile($DownloadUrl, $TempZip)
+    Log "Removing existing service (if any)..."
 
-    $sizeMB = [math]::Round((Get-Item $TempZip).Length / 1MB, 2)
-    Write-Ok "Download complete  ($sizeMB MB  ->  $TempZip)"
+    $svc = Get-Service $ServiceName -ErrorAction SilentlyContinue
 
-
-    # ----------------------------------------------------------
-    # 2. REMOVE OLD SERVICE  (only after download succeeds)
-    # ----------------------------------------------------------
-    Write-Step "Checking for existing service..."
-
-    $svc = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
     if ($svc) {
         if ($svc.Status -eq "Running") {
-            Write-Host "      Stopping service..." -ForegroundColor DarkGray
-            try   { Stop-Service -Name $ServiceName -Force -ErrorAction Stop; Write-Ok "Service stopped." }
-            catch { Write-Warn "Could not stop service: $($_.Exception.Message)" }
+            Stop-Service $ServiceName -Force -ErrorAction SilentlyContinue
         }
-        Write-Host "      Removing service..." -ForegroundColor DarkGray
         sc.exe delete $ServiceName | Out-Null
-        Write-Ok "Service removed."
-    }
-    else {
-        Write-Ok "No existing service — nothing to remove."
+        Log "Service removed"
     }
 
-
-    # ----------------------------------------------------------
-    # 3. EXTRACT PACKAGE
-    # ----------------------------------------------------------
-    Write-Step "Extracting package..."
-
+    Log "Extracting..."
     if (Test-Path $TempExtract) { Remove-Item $TempExtract -Recurse -Force }
-    Expand-Archive -Path $TempZip -DestinationPath $TempExtract -Force
-    Write-Ok "Extracted to  $TempExtract"
+    Expand-Archive $TempZip $TempExtract -Force
 
-
-    # ----------------------------------------------------------
-    # 4. INSTALL FILES
-    # ----------------------------------------------------------
-    Write-Step "Installing files to  $InstallDir ..."
-
-    if (-not (Test-Path $InstallDir)) { New-Item -ItemType Directory -Path $InstallDir | Out-Null }
+    Log "Installing files..."
+    New-Item -ItemType Directory -Force -Path $InstallDir | Out-Null
     Copy-Item "$TempExtract\*" $InstallDir -Recurse -Force
-    Write-Ok "Files copied."
 
+    # ========================================================
+    # FIX: safer EXE detection (IMPORTANT)
+    # ========================================================
+    $ExePath = Get-ChildItem $InstallDir -Recurse -Filter "*.exe" |
+               Where-Object { $_.Name -like "*acme*" } |
+               Select-Object -First 1 -ExpandProperty FullName
 
-    # ----------------------------------------------------------
-    # 5. LOCATE acmelive.exe
-    # ----------------------------------------------------------
-    Write-Step "Locating main executable..."
-
-    $ExePath = Join-Path $InstallDir "$AppName.exe"
-    if (-not (Test-Path $ExePath)) { throw "Executable not found: $ExePath" }
-    Write-Ok "Found  $ExePath"
-
-
-    # ----------------------------------------------------------
-    # 6. RUN acmelive.exe install
-    # ----------------------------------------------------------
-    Write-Step "Running acmelive.exe install command..."
-
-    $proc = Start-Process -FilePath $ExePath -ArgumentList "install" -Wait -PassThru
-    if ($proc.ExitCode -ne 0) { throw "acmelive install exited with code $($proc.ExitCode)" }
-    Write-Ok "acmelive install completed."
-
-
-    # ----------------------------------------------------------
-    # 7. ADD TO PATH
-    # ----------------------------------------------------------
-    Write-Step "Adding to PATH..."
-
-    $currentPath = [Environment]::GetEnvironmentVariable("Path", "User")
-    if ($currentPath -notlike "*$InstallDir*") {
-        [Environment]::SetEnvironmentVariable("Path", "$currentPath;$InstallDir", "User")
-        $env:Path += ";$InstallDir"
-        Write-Ok "Added to PATH  ->  $InstallDir"
-    } else {
-        Write-Ok "Already in PATH — skipping."
+    if (-not $ExePath) {
+        throw "Main executable not found"
     }
 
+    Log "Running install command..."
+    $p = Start-Process $ExePath "install" -Wait -PassThru
 
-    # ----------------------------------------------------------
-    # DONE
-    # ----------------------------------------------------------
-    Write-Host ""
-    Write-Host "  =============================================" -ForegroundColor DarkCyan
-    Write-Host "   Installation complete!  $(Get-Date -Format 'HH:mm:ss')" -ForegroundColor Green
-    Write-Host "  =============================================" -ForegroundColor DarkCyan
-    Write-Host ""
+    if ($p.ExitCode -ne 0) {
+        throw "Install command failed: $($p.ExitCode)"
+    }
+
+    Log "Adding PATH..."
+    $path = [Environment]::GetEnvironmentVariable("Path","User")
+
+    if ($path -notlike "*$InstallDir*") {
+        [Environment]::SetEnvironmentVariable("Path", "$path;$InstallDir", "User")
+    }
+
+    Log "DONE"
 
 }
 catch {
-    Write-Host ""
-    Write-Fail "Installation failed: $($_.Exception.Message)"
-    Write-Host ""
+    Write-Host "ERROR: $($_.Exception.Message)" -ForegroundColor Red
 }
 finally {
-    Write-Step "Cleaning up temporary files..."
-    Remove-Item $TempZip     -Force          -ErrorAction SilentlyContinue
-    Remove-Item $TempExtract -Recurse -Force -ErrorAction SilentlyContinue
-    Remove-Item "$env:TEMP\AcmeInstall-elevated.ps1" -Force -ErrorAction SilentlyContinue
-    Write-Ok "Cleanup done."
-    Write-Host ""
+    Remove-Item $TempZip,$TempExtract -Force -Recurse -ErrorAction SilentlyContinue
 }
-
-Read-Host "  Press Enter to close"
