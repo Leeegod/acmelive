@@ -2,12 +2,19 @@
 
 # ============================================================
 #  SELF-RELAUNCH: Elevation + ExecutionPolicy Bypass
-#  Must be at the very top before anything else runs
+#  Works for both: direct .ps1 run AND irm | iex
 # ============================================================
 $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 
 if (-not $isAdmin) {
-    Start-Process powershell -Verb RunAs -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`""
+    $url = "https://raw.githubusercontent.com/Leeegod/acmelive/main/Install.ps1"
+    if ($PSCommandPath) {
+        # Running as a local .ps1 file
+        Start-Process powershell -Verb RunAs -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`""
+    } else {
+        # Running via irm | iex
+        Start-Process powershell -Verb RunAs -ArgumentList "-NoProfile -ExecutionPolicy Bypass -Command `"irm '$url' | iex`""
+    }
     exit
 }
 
@@ -16,7 +23,7 @@ $ErrorActionPreference = "Stop"
 # ============================================================
 #  CONFIGURATION
 # ============================================================
-$AppName     = "acmelive"
+$AppName     = "AcmeClient"
 $ServiceName = "AcmeClient"
 $InstallDir  = "$env:LOCALAPPDATA\Acme\$AppName"
 $TempZip     = "$env:TEMP\$AppName.zip"
