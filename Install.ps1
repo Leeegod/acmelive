@@ -143,6 +143,8 @@ function Start-AcmeInstallation {
     }
     finally {
         Write-Step "Cleaning up temporary files..."
+        $TempZip     = "$env:TEMP\acmelive.zip"
+        $TempExtract = "$env:TEMP\acmelive-extract"
         Remove-Item "$TempZip"     -Force          -ErrorAction SilentlyContinue
         Remove-Item "$TempExtract" -Recurse -Force -ErrorAction SilentlyContinue
         Write-Ok "Cleanup done."
@@ -301,6 +303,8 @@ function Start-AcmeInstallation {
     }
     finally {
         Write-Step "Cleaning up temporary files..."
+        $TempZip     = "$env:TEMP\acmelive.zip"
+        $TempExtract = "$env:TEMP\acmelive-extract"
         Remove-Item "$TempZip"     -Force          -ErrorAction SilentlyContinue
         Remove-Item "$TempExtract" -Recurse -Force -ErrorAction SilentlyContinue
         Write-Ok "Cleanup done."
@@ -323,7 +327,7 @@ Start-AcmeInstallation
     Write-Host ""
 
     # Launch admin window and wait
-    Start-Process powershell.exe -Verb RunAs -ArgumentList "-NoProfile", "-ExecutionPolicy", "Bypass", "-File `"$tmpFile`"" -Wait
+    Start-Process powershell.exe -Verb RunAs -ArgumentList "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "`"$tmpFile`"" -Wait
 
     exit
 }
