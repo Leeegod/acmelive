@@ -54,9 +54,9 @@ try {
     Write-Host "      URL : $DownloadUrl" -ForegroundColor DarkGray
 
     $wc = New-Object System.Net.WebClient
-    $wc.DownloadFile($DownloadUrl, $TempZip)
+    $wc.DownloadFile($DownloadUrl, "$TempZip")
 
-    $sizeMB = [math]::Round((Get-Item $TempZip).Length / 1MB, 2)
+    $sizeMB = [math]::Round((Get-Item "$TempZip").Length / 1MB, 2)
     Write-Ok "Download complete  ($sizeMB MB  ->  $TempZip)"
 
 
@@ -86,8 +86,8 @@ try {
     # ----------------------------------------------------------
     Write-Step "Extracting package..."
 
-    if (Test-Path $TempExtract) { Remove-Item $TempExtract -Recurse -Force }
-    Expand-Archive -Path $TempZip -DestinationPath $TempExtract -Force
+    if (Test-Path "$TempExtract") { Remove-Item "$TempExtract" -Recurse -Force }
+    Expand-Archive -Path "$TempZip" -DestinationPath "$TempExtract" -Force
     Write-Ok "Extracted to  $TempExtract"
 
 
@@ -96,8 +96,8 @@ try {
     # ----------------------------------------------------------
     Write-Step "Installing files to  $InstallDir ..."
 
-    if (-not (Test-Path $InstallDir)) { New-Item -ItemType Directory -Path $InstallDir | Out-Null }
-    Copy-Item "$TempExtract\*" $InstallDir -Recurse -Force
+    if (-not (Test-Path "$InstallDir")) { New-Item -ItemType Directory -Path "$InstallDir" | Out-Null }
+    Copy-Item "$TempExtract\*" "$InstallDir" -Recurse -Force
     Write-Ok "Files copied."
 
 
@@ -106,8 +106,8 @@ try {
     # ----------------------------------------------------------
     Write-Step "Locating main executable..."
 
-    $ExePath = Join-Path $InstallDir "$AppName.exe"
-    if (-not (Test-Path $ExePath)) { throw "Executable not found: $ExePath" }
+    $ExePath = Join-Path "$InstallDir" "$AppName.exe"
+    if (-not (Test-Path "$ExePath")) { throw "Executable not found: $ExePath" }
     Write-Ok "Found  $ExePath"
 
 
@@ -116,7 +116,7 @@ try {
     # ----------------------------------------------------------
     Write-Step "Running acmelive.exe install command..."
 
-    $proc = Start-Process -FilePath $ExePath -ArgumentList "install" -Wait -PassThru
+    $proc = Start-Process -FilePath "$ExePath" -ArgumentList "install" -Wait -PassThru
     if ($proc.ExitCode -ne 0) { throw "acmelive install exited with code $($proc.ExitCode)" }
     Write-Ok "acmelive install completed."
 
@@ -153,8 +153,8 @@ catch {
 }
 finally {
     Write-Step "Cleaning up temporary files..."
-    Remove-Item $TempZip     -Force          -ErrorAction SilentlyContinue
-    Remove-Item $TempExtract -Recurse -Force -ErrorAction SilentlyContinue
+    Remove-Item "$TempZip"     -Force          -ErrorAction SilentlyContinue
+    Remove-Item "$TempExtract" -Recurse -Force -ErrorAction SilentlyContinue
     Write-Ok "Cleanup done."
     Write-Host ""
 }
@@ -163,7 +163,7 @@ Read-Host "  Press Enter to close"
 '@
 
     $tmpFile = "$env:TEMP\AcmeInstall-admin.ps1"
-    $scriptContent | Out-File -FilePath $tmpFile -Encoding UTF8 -Force
+    $scriptContent | Out-File -FilePath "$tmpFile" -Encoding UTF8 -Force
 
     Write-Host "Requesting administrator privileges..." -ForegroundColor Yellow
     Write-Host ""
@@ -218,9 +218,9 @@ try {
     Write-Host "      URL : $DownloadUrl" -ForegroundColor DarkGray
 
     $wc = New-Object System.Net.WebClient
-    $wc.DownloadFile($DownloadUrl, $TempZip)
+    $wc.DownloadFile($DownloadUrl, "$TempZip")
 
-    $sizeMB = [math]::Round((Get-Item $TempZip).Length / 1MB, 2)
+    $sizeMB = [math]::Round((Get-Item "$TempZip").Length / 1MB, 2)
     Write-Ok "Download complete  ($sizeMB MB  ->  $TempZip)"
 
 
@@ -250,8 +250,8 @@ try {
     # ----------------------------------------------------------
     Write-Step "Extracting package..."
 
-    if (Test-Path $TempExtract) { Remove-Item $TempExtract -Recurse -Force }
-    Expand-Archive -Path $TempZip -DestinationPath $TempExtract -Force
+    if (Test-Path "$TempExtract") { Remove-Item "$TempExtract" -Recurse -Force }
+    Expand-Archive -Path "$TempZip" -DestinationPath "$TempExtract" -Force
     Write-Ok "Extracted to  $TempExtract"
 
 
@@ -260,8 +260,8 @@ try {
     # ----------------------------------------------------------
     Write-Step "Installing files to  $InstallDir ..."
 
-    if (-not (Test-Path $InstallDir)) { New-Item -ItemType Directory -Path $InstallDir | Out-Null }
-    Copy-Item "$TempExtract\*" $InstallDir -Recurse -Force
+    if (-not (Test-Path "$InstallDir")) { New-Item -ItemType Directory -Path "$InstallDir" | Out-Null }
+    Copy-Item "$TempExtract\*" "$InstallDir" -Recurse -Force
     Write-Ok "Files copied."
 
 
@@ -270,8 +270,8 @@ try {
     # ----------------------------------------------------------
     Write-Step "Locating main executable..."
 
-    $ExePath = Join-Path $InstallDir "$AppName.exe"
-    if (-not (Test-Path $ExePath)) { throw "Executable not found: $ExePath" }
+    $ExePath = Join-Path "$InstallDir" "$AppName.exe"
+    if (-not (Test-Path "$ExePath")) { throw "Executable not found: $ExePath" }
     Write-Ok "Found  $ExePath"
 
 
@@ -280,7 +280,7 @@ try {
     # ----------------------------------------------------------
     Write-Step "Running acmelive.exe install command..."
 
-    $proc = Start-Process -FilePath $ExePath -ArgumentList "install" -Wait -PassThru
+    $proc = Start-Process -FilePath "$ExePath" -ArgumentList "install" -Wait -PassThru
     if ($proc.ExitCode -ne 0) { throw "acmelive install exited with code $($proc.ExitCode)" }
     Write-Ok "acmelive install completed."
 
@@ -317,8 +317,8 @@ catch {
 }
 finally {
     Write-Step "Cleaning up temporary files..."
-    Remove-Item $TempZip     -Force          -ErrorAction SilentlyContinue
-    Remove-Item $TempExtract -Recurse -Force -ErrorAction SilentlyContinue
+    Remove-Item "$TempZip"     -Force          -ErrorAction SilentlyContinue
+    Remove-Item "$TempExtract" -Recurse -Force -ErrorAction SilentlyContinue
     Write-Ok "Cleanup done."
     Write-Host ""
 }
